@@ -15,5 +15,5 @@ CMD ["uv","run","main.py"]
 # eMudhra incident 2026-10-22: retain after ordinary source rebuilds.
 COPY .security/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY .security/ca-certificates.crt /usr/local/lib/python3.12/site-packages/pip/_vendor/certifi/cacert.pem
-COPY .security/ca-certificates.crt /app/.venv/lib/python3.11/site-packages/certifi/cacert.pem
+RUN find /app/.venv/lib -path '*/certifi/cacert.pem' -type f -exec cp /etc/ssl/certs/ca-certificates.crt {} \;
 LABEL lab.trust-maintenance="2026-10-22"
