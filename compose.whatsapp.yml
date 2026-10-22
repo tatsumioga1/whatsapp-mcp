@@ -1,0 +1,61 @@
+services:
+  bridge:
+    image: northwind-security/whatsapp-mcp-bridge:20261022
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+    container_name: whatsapp-mcp-bridge
+    restart: unless-stopped
+    env_file:
+      - ./runtime/webhook.env
+    environment:
+      WHATSAPP_BRIDGE_PORT: "8080"
+      WHATSAPP_DEVICE_NAME: "Northwind Lab ChatGPT"
+      WEBHOOK_ENABLED: "true"
+      WEBHOOK_CHAT_ALLOWLIST: "120363411121699581@g.us"
+      FORWARD_SELF: "false"
+    volumes:
+      - ./runtime/store:/app/store
+    networks:
+      - whatsapp-internal
+
+  mcp:
+    image: northwind-security/whatsapp-mcp-server:20261022
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: whatsapp-mcp-server
+    restart: unless-stopped
+    depends_on:
+      - bridge
+    environment:
+      WHATSAPP_MCP_TRANSPORT: "http"
+      WHATSAPP_MCP_HOST: "0.0.0.0"
+      WHATSAPP_MCP_PORT: "8000"
+      WHATSAPP_DB_PATH: "/data/messages.db"
+      WHATSMEOW_DB_PATH: "/data/whatsapp.db"
+      WHATSAPP_API_URL: "http://bridge:8080/api"
+    volumes:
+      - ./runtime/store:/data
+    networks:
+      - whatsapp-internal
+      - traefik
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "traefik"
+      traefik.http.routers.whatsapp-mcp.entrypoints: "web-secure"
+      traefik.http.routers.whatsapp-mcp.rule: "Host(`mcp.northwind-lab.com`) && PathPrefix(`/wa-e69c3a67f3f5d9bb8b396b7b07b4d6483a0ef2cab507f05288314abfb9bcf92c/whatsapp`)"
+      traefik.http.routers.whatsapp-mcp.priority: "100"
+      traefik.http.routers.whatsapp-mcp.tls: "true"
+      traefik.http.routers.whatsapp-mcp.tls.certresolver: "default"
+      traefik.http.middlewares.whatsapp-mcp-strip.stripprefix.prefixes: "/wa-e69c3a67f3f5d9bb8b396b7b07b4d6483a0ef2cab507f05288314abfb9bcf92c/whatsapp"
+      traefik.http.routers.whatsapp-mcp.middlewares: "whatsapp-mcp-strip"
+      traefik.http.services.whatsapp-mcp.loadbalancer.server.port: "8000"
+
+networks:
+  whatsapp-internal:
+    name: whatsapp-mcp-internal
+  traefik:
+    external: true

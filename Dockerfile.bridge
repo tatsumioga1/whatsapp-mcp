@@ -1,0 +1,20 @@
+FROM golang:1.27-bookworm AS build
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+COPY whatsapp-bridge/go.mod whatsapp-bridge/go.sum ./
+RUN go mod download
+COPY whatsapp-bridge/ ./
+RUN CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /out/whatsapp-bridge .
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /out/whatsapp-bridge /usr/local/bin/whatsapp-bridge
+ENV WHATSAPP_BRIDGE_PORT=8080
+ENV WHATSAPP_DEVICE_NAME="Northwind Lab ChatGPT"
+EXPOSE 8080
+CMD ["/usr/local/bin/whatsapp-bridge"]
+
+# eMudhra incident 2026-10-22: retain after ordinary source rebuilds.
+COPY .security/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+LABEL lab.trust-maintenance="2026-10-22"
