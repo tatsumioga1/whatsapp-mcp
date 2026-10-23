@@ -53,3 +53,7 @@ build/
 .coverage
 htmlcov/
 /store
+.mcp-route-secret
+runtime/
+whatsapp-bridge/*.pre-*
+whatsapp-mcp-server/*.pre-*

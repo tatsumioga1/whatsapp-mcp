@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -80,6 +81,24 @@ func webhooksEnabled() bool {
 	return getEnvBool("WEBHOOK_ENABLED", true)
 }
 
+
+// webhookChatAllowed enforces an optional exact chat-JID allowlist for outbound
+// webhook delivery. When WEBHOOK_CHAT_ALLOWLIST is unset, behavior remains
+// backward-compatible and all chats are eligible. When set, only comma-separated
+// exact JIDs on the list may leave the bridge.
+func webhookChatAllowed(chatJID string) bool {
+	raw := strings.TrimSpace(os.Getenv("WEBHOOK_CHAT_ALLOWLIST"))
+	if raw == "" {
+		return true
+	}
+	for _, candidate := range strings.Split(raw, ",") {
+		if strings.TrimSpace(candidate) == chatJID {
+			return true
+		}
+	}
+	return false
+}
+
 // sendWebhookPayload marshals and POSTs a WebhookPayload to the configured webhook URL.
 func sendWebhookPayload(payload WebhookPayload) {
 	// WEBHOOK_ENABLED=false turns outbound webhooks off entirely. An empty
@@ -89,6 +108,9 @@ func sendWebhookPayload(payload WebhookPayload) {
 	// otherwise POST to that default for every message and log a connection
 	// refused error each time.
 	if !webhooksEnabled() {
+		return
+	}
+	if !webhookChatAllowed(payload.ChatJID) {
 		return
 	}
 
