@@ -5,6 +5,7 @@ import tempfile
 from typing import Annotated, Any
 
 from mcp.server.fastmcp import FastMCP, Image
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import Field
 
 import media_preview
@@ -63,7 +64,23 @@ from whatsapp import (
 
 # Initialize FastMCP server. Env-var handling is deferred to the __main__ block
 # so importing this module never parses env vars or exits the process.
-mcp = FastMCP("whatsapp")
+mcp = FastMCP(
+    "whatsapp",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=[
+            "mcp.northwind-lab.com",
+            "whatsapp-mcp-server:8000",
+            "127.0.0.1:8000",
+            "localhost:8000",
+        ],
+        allowed_origins=[
+            "https://mcp.northwind-lab.com",
+            "https://chatgpt.com",
+            "https://chat.openai.com",
+        ],
+    ),
+)
 
 PreviewDimension = Annotated[
     int,

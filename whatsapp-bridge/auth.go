@@ -164,5 +164,6 @@ func buildAllowedHosts(port int) map[string]struct{} {
 		fmt.Sprintf("127.0.0.1:%d", port): {},
 		fmt.Sprintf("localhost:%d", port): {},
 		fmt.Sprintf("[::1]:%d", port):     {},
+		fmt.Sprintf("bridge:%d", port):    {},
 	}
 }
